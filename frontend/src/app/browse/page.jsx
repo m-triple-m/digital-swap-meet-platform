@@ -5,32 +5,38 @@ import { useRouter } from 'next/navigation';
 export default function Browse() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [myItems, setMyItems] = useState([]);
+  const [selectedItemToSwap, setSelectedItemToSwap] = useState(null);
+  const [itemRequested, setItemRequested] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
     fetch('http://localhost:5000/api/items/')
       .then(res => res.json())
-      .then(data => {
-        console.log(data);
-        setItems(data)
-      });
+      .then(data => setItems(data));
   }, []);
 
   const handleRequestSwap = async (item) => {
     const token = localStorage.getItem('token');
     if (!token) return router.push('/login');
-    // Prompt for which of user's items to offer
     const myItemsRes = await fetch('http://localhost:5000/api/items/my', { headers: { Authorization: `Bearer ${token}` } });
-    const myItems = await myItemsRes.json();
-    const itemOfferedId = prompt('Enter the ID of your item to offer for swap:', myItems[0]?._id || '');
-    if (!itemOfferedId) return;
+    const myItemsData = await myItemsRes.json();
+    setMyItems(myItemsData);
+    setItemRequested(item);
+    setShowModal(true);
+  };
+
+  const performSwap = async (itemOfferedId) => {
+    const token = localStorage.getItem('token');
+    setShowModal(false);
     const res = await fetch('http://localhost:5000/api/swaps', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
-        toUserId: item.userId._id,
+        toUserId: itemRequested.userId._id,
         itemOfferedId,
-        itemRequestedId: item._id
+        itemRequestedId: itemRequested._id
       })
     });
     if (res.ok) {
@@ -58,6 +64,31 @@ export default function Browse() {
           </div>
         ))}
       </div>
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Select an item to offer for swap</h3>
+            {myItems.length === 0 ? (
+              <div>You have no items to offer.</div>
+            ) : (
+              <ul>
+                {myItems.map(myItem => (
+                  <li key={myItem._id} className="mb-2 flex items-center justify-between">
+                    <span>{myItem.name}</span>
+                    <button
+                      className="bg-blue-600 text-white px-2 py-1 rounded ml-2"
+                      onClick={() => performSwap(myItem._id)}
+                    >
+                      Offer this
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button className="mt-4 text-gray-600" onClick={() => setShowModal(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
