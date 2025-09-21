@@ -25,13 +25,28 @@ router.post('/', auth, async (req, res) => {
 
 // Get sent and received swaps
 router.get('/my-swaps', auth, async (req, res) => {
+  // console.log(req.user);
+  
   try {
-    const sent = await Swap.find({ fromUserId: req.user.id })
+    const sent = await Swap.find({ fromUserId: req.user._id })
       .populate('itemOfferedId itemRequestedId toUserId');
-    const received = await Swap.find({ toUserId: req.user.id })
+    const received = await Swap.find({ toUserId: req.user._id })
       .populate('itemOfferedId itemRequestedId fromUserId');
+      console.log(sent, received);
+      
     res.json({ sent, received });
   } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/swaps',  async (req, res) => {
+  try {
+    const sent = await Swap.find()
+    res.json(sent);
+  } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 });

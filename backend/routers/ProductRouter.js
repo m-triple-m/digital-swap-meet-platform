@@ -1,4 +1,4 @@
-const express = require('express');
+ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const Model = require('../models/ProductModel');
@@ -51,6 +51,8 @@ router.get('/', async (req, res) => {
 router.get('/my', auth, async (req, res) => {
     try {
         const items = await Model.find({ userId: req.user._id });
+        // console.log(items);
+        
         res.json(items);
     } catch (err) {
         res.status(500).json({ error: err.message });
